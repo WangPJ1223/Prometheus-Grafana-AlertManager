@@ -1,0 +1,42 @@
+version: '3.8'
+services:
+  web:
+    build: ./flask
+    ports:
+    - "5000:5000"
+
+  prometheus:
+    build: ./prometheus
+    container_name: prometheus
+    ports:
+      - '9090:9090'
+
+  renderer:
+    image: grafana/grafana-image-renderer:3.9.0
+    environment:
+      BROWSER_TZ: Asia/Taipei
+    ports:
+      - '8081:8081'
+
+  grafana:
+    image: grafana/grafana:10.3.0
+    container_name: grafana
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: pass
+      GF_RENDERING_SERVER_URL: http://renderer:8081/render
+      GF_RENDERING_CALLBACK_URL: http://grafana:3000/
+      GF_LOG_FILTERS: rendering:debug
+    depends_on:
+      - prometheus
+      - renderer
+    ports:
+      - '3000:3000'
+    
+  alertmanager:
+    build: ./alert_manager
+    ports:
+      - 9093:9093
+    restart: always
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yaml'
+      - '--storage.path=/alertmanager'
